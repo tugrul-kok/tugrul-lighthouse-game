@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>The Lighthouse at Tugrul Bay</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #0f172a 0, #020617 45%, #000 100%);
+      color: #e5e7eb;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .game-shell {
+      width: 100%;
+      max-width: 720px;
+      background: rgba(15, 23, 42, 0.92);
+      border-radius: 16px;
+      border: 1px solid #1f2937;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .game-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #1f2937;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(to right, #020617, #0b1120);
+    }
+    .game-title {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #e5e7eb;
+    }
+    .game-subtitle {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 12px #22c55e;
+      margin-right: 6px;
+    }
+    .game-body {
+      padding: 16px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 12px;
+      height: 460px;
+    }
+    .location-name {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #e5e7eb;
+    }
+    .location-meta {
+      font-size: 13px;
+      color: #9ca3af;
+      margin-bottom: 8px;
+    }
+    .log-window {
+      background: radial-gradient(circle at top left, rgba(15,23,42,0.9) 0, rgba(15,23,42,0.95) 40%, #020617 100%);
+      border-radius: 12px;
+      border: 1px solid #111827;
+      padding: 12px;
+      overflow-y: auto;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .log-line {
+      margin-bottom: 6px;
+    }
+    .log-line.system {
+      color: #9ca3af;
+    }
+    .log-line.command {
+      color: #e5e7eb;
+    }
+    .log-line.response {
+      color: #d1d5db;
+    }
+    .log-line.important {
+      color: #fbbf24;
+    }
+    .log-line span.prompt {
+      color: #22c55e;
+      margin-right: 4px;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .cmd-input {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid #1f2937;
+      background: rgba(15,23,42,0.95);
+      color: #e5e7eb;
+      font-size: 14px;
+      outline: none;
+    }
+    .cmd-input::placeholder {
+      color: #4b5563;
+    }
+    .cmd-input:focus {
+      border-color: #22c55e;
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.5);
+    }
+    .btn {
+      padding: 9px 14px;
+      border-radius: 999px;
+      border: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      background: linear-gradient(to right, #22c55e, #16a34a);
+      color: #022c22;
+      white-space: nowrap;
+    }
+    .btn:active {
+      transform: translateY(1px);
+    }
+    .help-hint {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 8px;
+      border: 1px solid #374151;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #9ca3af;
+      gap: 4px;
+    }
+    .pill span.dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 999px;
+      background: #38bdf8;
+    }
+    @media (max-width: 640px) {
+      .game-body {
+        height: 420px;
+      }
+      .game-title {
+        font-size: 14px;
+      }
+      .game-subtitle {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-shell">
+    <div class="game-header">
+      <div>
+        <div class="game-title">The Lighthouse at Tugrul Bay</div>
+        <div class="game-subtitle">Text Adventure Prototype • game.tugrul.app</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="pill">
+          <span class="dot"></span>
+          <span>Offline Engine</span>
+        </div>
+      </div>
+    </div>
+    <div class="game-body">
+      <div>
+        <div class="location-name" id="location-name"></div>
+        <div class="location-meta" id="location-meta"></div>
+      </div>
+      <div class="log-window" id="log"></div>
+      <div>
+        <div class="input-row">
+          <input
+            id="cmd-input"
+            class="cmd-input"
+            type="text"
+            autocomplete="off"
+            placeholder="Type a command (e.g. look, go north, take key, inventory, help)..."
+          />
+          <button class="btn" id="cmd-send">Send</button>
+        </div>
+        <div class="help-hint">
+          Example commands: <code>look</code>, <code>go north</code>, <code>go south</code>, <code>take key</code>, <code>inventory</code>, <code>help</code>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/game.js"></script>
+</body>
+</html>
