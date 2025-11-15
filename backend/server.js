@@ -101,7 +101,7 @@ Rules:
 
   let parsed;
   try {
-    parsed = JSON.parse(trimmed);
+    parsed = JSON.parse(candidate);
   } catch (e) {
     console.warn("Could not parse Mistral response as JSON:", trimmed);
     parsed = {
