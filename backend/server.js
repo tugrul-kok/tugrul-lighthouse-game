@@ -93,6 +93,12 @@ Rules:
 
   const trimmed = (content || "").trim();
 
+  let candidate = trimmed;
+  const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenceMatch && fenceMatch[1]) {
+    candidate = fenceMatch[1].trim();
+  }
+
   let parsed;
   try {
     parsed = JSON.parse(trimmed);
