@@ -1,0 +1,25 @@
+name: Deploy to Hetzner
+
+on:
+  workflow_dispatch:   # manuel çalıştırmak için
+  # push:
+  #   branches:
+  #     - main         # istersen push'ta da otomatik tetikleyebilirsin
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (just for completeness)
+        uses: actions/checkout@v4
+
+      - name: SSH to server and run deploy.sh
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            cd /opt/tugrul-game
+            ./deploy.sh
