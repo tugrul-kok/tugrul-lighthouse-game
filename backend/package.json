@@ -1,0 +1,17 @@
+{
+  "name": "tugrul-lighthouse-game-backend",
+  "version": "1.0.0",
+  "description": "Backend server for The Lighthouse at Tugrul Bay text adventure game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
+
