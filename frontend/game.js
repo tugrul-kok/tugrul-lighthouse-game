@@ -14,6 +14,17 @@ const gameState = {
       lanternLit: false,
       firstLook: true,
     },
+    puzzleProgress: {
+      foundLantern: false,
+      litLantern: false,
+      foundKey: false,
+      unlockedDoor: false,
+      reachedTop: false,
+      litBeacon: false,
+    },
+    gameComplete: false,
+    password: null,
+    language: "en",
   };
   
   const rooms = {
@@ -187,7 +198,12 @@ const gameState = {
       );
       return;
     }
-  
+
+    // Update puzzle progress for reaching top
+    if (nextId === "lighthouseTop") {
+      gameState.puzzleProgress.reachedTop = true;
+    }
+
     setLocation(nextId);
   }
   
@@ -209,7 +225,15 @@ const gameState = {
   
     room.items.splice(idx, 1);
     gameState.inventory.push(canonicalItem);
-  
+
+    // Update puzzle progress
+    if (canonicalItem === "lantern") {
+      gameState.puzzleProgress.foundLantern = true;
+    }
+    if (canonicalItem === "smallKey") {
+      gameState.puzzleProgress.foundKey = true;
+    }
+
     appendLog(
       `<span class='prompt'>+</span> You take the <strong>${readableItemName(canonicalItem)}</strong>.`,
       "response"
@@ -268,6 +292,7 @@ const gameState = {
         appendLog("<span class='prompt'>•</span> The door is already unlocked.", "system");
       } else {
         gameState.flags.lighthouseDoorUnlocked = true;
+        gameState.puzzleProgress.unlockedDoor = true;
         appendLog(
           "<span class='prompt'>+</span> You turn the key. The iron door unlocks with a heavy click. You can now go inside (<code>go inside</code>).",
           "important"
@@ -275,21 +300,56 @@ const gameState = {
       }
       return;
     }
-  
+
     if (canonicalItem === "lantern") {
-      if (gameState.flags.lanternLit) {
-        appendLog("<span class='prompt'>•</span> The lantern is already lit, casting a soft glow around you.", "system");
+      if (roomId === "lighthouseTop") {
+        // Final puzzle: light the beacon
+        if (gameState.puzzleProgress.litBeacon) {
+          appendLog("<span class='prompt'>•</span> The lighthouse beacon is already lit, casting its light across the bay.", "system");
+        } else if (gameState.flags.lanternLit) {
+          gameState.puzzleProgress.litBeacon = true;
+          appendLog(
+            "<span class='prompt'>+</span> You use the lit lantern to ignite the lighthouse beacon. A brilliant light pierces through the fog, illuminating Tugrul Bay!",
+            "important"
+          );
+          // Check if all puzzles are complete
+          checkGameCompletion();
+        } else {
+          appendLog("<span class='prompt'>!</span> The lantern needs to be lit first before you can use it to light the beacon.", "important");
+        }
+        return;
       } else {
-        gameState.flags.lanternLit = true;
-        appendLog(
-          "<span class='prompt'>+</span> You light the lantern. Shapes in the fog become a little clearer.",
-          "important"
-        );
+        if (gameState.flags.lanternLit) {
+          appendLog("<span class='prompt'>•</span> The lantern is already lit, casting a soft glow around you.", "system");
+        } else {
+          gameState.flags.lanternLit = true;
+          gameState.puzzleProgress.litLantern = true;
+          appendLog(
+            "<span class='prompt'>+</span> You light the lantern. Shapes in the fog become a little clearer.",
+            "important"
+          );
+        }
+        return;
       }
-      return;
     }
-  
+
     appendLog("<span class='prompt'>•</span> Using that doesn't seem to do anything useful here.", "system");
+  }
+
+  function checkGameCompletion() {
+    const progress = gameState.puzzleProgress;
+    const allComplete = 
+      progress.foundLantern &&
+      progress.litLantern &&
+      progress.foundKey &&
+      progress.unlockedDoor &&
+      progress.reachedTop &&
+      progress.litBeacon;
+
+    if (allComplete && !gameState.gameComplete) {
+      // The backend should handle this, but we can also check locally
+      // The password will be revealed by the backend response
+    }
   }
   
   function normalizeItemName(word = "") {
@@ -312,6 +372,9 @@ const gameState = {
       currentRoomId: gameState.currentRoomId,
       inventory: [...gameState.inventory],
       flags: { ...gameState.flags },
+      puzzleProgress: { ...gameState.puzzleProgress },
+      gameComplete: gameState.gameComplete,
+      language: gameState.language,
     };
   }
   
@@ -418,11 +481,30 @@ const gameState = {
       const data = await response.json();
       const engineCommand = (data.command || "").trim();
       const narration = (data.narration || "").trim();
-  
+
+      // Update language if detected
+      if (data.language) {
+        gameState.language = data.language;
+      }
+
+      // Update puzzle progress
+      if (data.puzzleProgress) {
+        gameState.puzzleProgress = { ...gameState.puzzleProgress, ...data.puzzleProgress };
+      }
+
+      // Check for game completion
+      if (data.gameComplete && !gameState.gameComplete) {
+        gameState.gameComplete = true;
+        if (data.password) {
+          gameState.password = data.password;
+          showGameComplete(data.password, data.language || "en");
+        }
+      }
+
       if (narration) {
         appendLog(`<span class="prompt">&gt;</span> ${narration}`, "response");
       }
-  
+
       if (engineCommand) {
         handleEngineCommand(engineCommand);
       }
@@ -435,9 +517,37 @@ const gameState = {
     }
   }
   
+  function showGameComplete(password, language) {
+    const isTurkish = language === "tr";
+    const messages = {
+      en: {
+        title: "🎉 CONGRATULATIONS! 🎉",
+        message: "You have solved all the puzzles and unlocked the secret!",
+        passwordLabel: "The secret password is:",
+      },
+      tr: {
+        title: "🎉 TEBRİKLER! 🎉",
+        message: "Tüm bulmacaları çözdünüz ve sırrı açtınız!",
+        passwordLabel: "Gizli şifre:",
+      },
+    };
+    const msg = messages[language] || messages.en;
+
+    appendLog("", "system");
+    appendLog(`<span class='prompt'>★</span> <strong style="color: #fbbf24; font-size: 16px;">${msg.title}</strong>`, "important");
+    appendLog(`<span class='prompt'>★</span> ${msg.message}`, "important");
+    appendLog(`<span class='prompt'>★</span> ${msg.passwordLabel}`, "important");
+    appendLog(`<span class='prompt'>★</span> <strong style="color: #22c55e; font-size: 18px; letter-spacing: 2px;">${password}</strong>`, "important");
+    appendLog("", "system");
+  }
+
   function initGame() {
     appendLog(
       "<span class='prompt'>•</span> A foggy night at Tugrul Bay. The lighthouse has been dark for a long time. Perhaps tonight, someone will light it again...",
+      "system"
+    );
+    appendLog(
+      "<span class='prompt'>•</span> <em>You can play in English or Turkish (Türkçe). The game will respond in your language.</em>",
       "system"
     );
     setLocation(gameState.currentRoomId);
