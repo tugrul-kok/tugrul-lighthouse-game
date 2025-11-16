@@ -94,21 +94,56 @@ Rules:
   const trimmed = (content || "").trim();
 
   let candidate = trimmed;
-  const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fenceMatch && fenceMatch[1]) {
-    candidate = fenceMatch[1].trim();
+  
+  // Try to extract JSON from markdown code blocks
+  // Match ```json ... ``` or ``` ... ``` (handle multiline with [\s\S])
+  // Use non-greedy match to stop at first closing ```
+  if (trimmed.includes("```")) {
+    const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (fenceMatch && fenceMatch[1]) {
+      candidate = fenceMatch[1].trim();
+    }
   }
+  
+  // If still wrapped in code blocks or no code blocks found, try direct JSON extraction
+  if (candidate === trimmed || candidate.startsWith("```")) {
+    // Find JSON object boundaries - match from first { to last }
+    const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      candidate = jsonMatch[0].trim();
+    }
+  }
+  
+  // Final cleanup
+  candidate = candidate.trim();
 
   let parsed;
   try {
     parsed = JSON.parse(candidate);
   } catch (e) {
-    console.warn("Could not parse Mistral response as JSON:", trimmed);
-    parsed = {
-      command: "look",
-      narration:
-        trimmed || "You pause for a moment, unsure of your next move.",
-    };
+    console.warn("Could not parse Mistral response as JSON.");
+    console.warn("Extracted candidate:", JSON.stringify(candidate));
+    console.warn("Original response:", JSON.stringify(trimmed));
+    console.warn("Parse error:", e.message);
+    // Try one more time with just the JSON object if it's still wrapped
+    if (candidate.includes("```")) {
+      const lastAttempt = candidate.replace(/```(?:json)?/gi, "").replace(/```/g, "").trim();
+      try {
+        parsed = JSON.parse(lastAttempt);
+      } catch (e2) {
+        parsed = {
+          command: "look",
+          narration:
+            trimmed || "You pause for a moment, unsure of your next move.",
+        };
+      }
+    } else {
+      parsed = {
+        command: "look",
+        narration:
+          trimmed || "You pause for a moment, unsure of your next move.",
+      };
+    }
   }
 
   if (!parsed.command) {
