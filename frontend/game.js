@@ -215,8 +215,8 @@ const gameState = {
   function move(direction) {
     const room = rooms[gameState.currentRoomId];
     if (!room || !room.exits) {
-      appendLog("<span class='prompt'>!</span> You can't go anywhere from here.", "important");
-      return;
+      // Command failed - will be handled by LLM
+      return false;
     }
   
     if (direction === "inside" || direction === "in") {
@@ -225,19 +225,13 @@ const gameState = {
   
     const nextId = room.exits[direction];
     if (!nextId) {
-      appendLog(
-        `<span class='prompt'>!</span> You can't go that way (<strong>${direction}</strong>).`,
-        "important"
-      );
-      return;
+      // Command failed - will be handled by LLM
+      return false;
     }
   
     if (nextId === "lighthouseInterior" && !gameState.flags.lighthouseDoorUnlocked) {
-      appendLog(
-        "<span class='prompt'>!</span> The iron door is locked. Maybe there's a key nearby?",
-        "important"
-      );
-      return;
+      // Command failed - will be handled by LLM
+      return false;
     }
 
     // Update puzzle progress for reaching top
@@ -246,22 +240,23 @@ const gameState = {
     }
 
     setLocation(nextId);
+    return true;
   }
   
   function take(itemWord) {
     const room = rooms[gameState.currentRoomId];
-    if (!room) return;
+    if (!room) return false;
   
     const canonicalItem = normalizeItemName(itemWord);
     if (!canonicalItem) {
-      appendLog("<span class='prompt'>!</span> I'm not sure what you're trying to take.", "important");
-      return;
+      // Don't show error - LLM will handle this naturally
+      return false;
     }
   
     const idx = (room.items || []).indexOf(canonicalItem);
     if (idx === -1) {
-      appendLog("<span class='prompt'>!</span> You don't see anything like that here.", "important");
-      return;
+      // Don't show error - LLM will handle this naturally
+      return false;
     }
   
     room.items.splice(idx, 1);
@@ -277,102 +272,92 @@ const gameState = {
 
     // Update dashboard after taking item
     updateDashboard();
+    return true;
   }
   
   function inventory() {
-    if (gameState.inventory.length === 0) {
-      appendLog("<span class='prompt'>•</span> You are not carrying anything.", "system");
-      return;
-    }
-    const items = gameState.inventory.map(readableItemName).join(", ");
-    appendLog(`<span class='prompt'>•</span> You are carrying: <strong>${items}</strong>.`, "system");
+    // Don't show inventory directly - LLM will handle this naturally in narration
+    // Just return success so LLM knows to describe inventory
+    return true;
   }
   
   function examine(itemWord) {
     const canonicalItem = normalizeItemName(itemWord);
     if (!canonicalItem) {
-      appendLog("<span class='prompt'>!</span> I'm not sure what you want to examine.", "important");
-      return;
+      // Don't show error - LLM will handle this naturally
+      return false;
     }
   
     const hasIt = gameState.inventory.includes(canonicalItem);
     const inRoom = (rooms[gameState.currentRoomId].items || []).includes(canonicalItem);
   
     if (!hasIt && !inRoom) {
-      appendLog("<span class='prompt'>!</span> There's nothing like that to examine.", "important");
-      return;
+      // Don't show error - LLM will handle this naturally
+      return false;
     }
   
-    const desc = itemDescriptions[canonicalItem];
-    if (desc) {
-      appendLog(`<span class='prompt'>•</span> ${desc}`, "response");
-    } else {
-      appendLog("<span class='prompt'>•</span> It looks fairly ordinary.", "system");
-    }
+    // Don't show description directly - LLM will handle this naturally in narration
+    // Just return success so LLM knows to describe the item
+    return true;
   }
   
   function useItem(itemWord) {
     const canonicalItem = normalizeItemName(itemWord);
     if (!canonicalItem) {
-      appendLog("<span class='prompt'>!</span> I'm not sure what you want to use.", "important");
-      return;
+      // Don't show error - LLM will handle this naturally
+      return false;
     }
   
     const hasIt = gameState.inventory.includes(canonicalItem);
     if (!hasIt) {
-      appendLog("<span class='prompt'>!</span> You're not carrying that.", "important");
-      return;
+      // Don't show error - LLM will handle this naturally
+      return false;
     }
   
     const roomId = gameState.currentRoomId;
   
     if (canonicalItem === "smallKey" && roomId === "lighthouseExterior") {
       if (gameState.flags.lighthouseDoorUnlocked) {
-        appendLog("<span class='prompt'>•</span> The door is already unlocked.", "system");
+        // Already unlocked - LLM will handle this
+        return true;
       } else {
         gameState.flags.lighthouseDoorUnlocked = true;
         gameState.puzzleProgress.unlockedDoor = true;
-        appendLog(
-          "<span class='prompt'>+</span> You turn the key. The iron door unlocks with a heavy click. You can now go inside (<code>go inside</code>).",
-          "important"
-        );
+        // Success - LLM narration will describe this
+        return true;
       }
-      return;
     }
 
     if (canonicalItem === "lantern") {
       if (roomId === "lighthouseTop") {
         // Final puzzle: light the beacon
         if (gameState.puzzleProgress.litBeacon) {
-          appendLog("<span class='prompt'>•</span> The lighthouse beacon is already lit, casting its light across the bay.", "system");
+          // Already lit - LLM will handle this
+          return true;
         } else if (gameState.flags.lanternLit) {
           gameState.puzzleProgress.litBeacon = true;
-          appendLog(
-            "<span class='prompt'>+</span> You use the lit lantern to ignite the lighthouse beacon. A brilliant light pierces through the fog, illuminating Tugrul Bay!",
-            "important"
-          );
-          // Check if all puzzles are complete
+          // Success - LLM narration will describe this
           checkGameCompletion();
+          return true;
         } else {
-          appendLog("<span class='prompt'>!</span> The lantern needs to be lit first before you can use it to light the beacon.", "important");
+          // Lantern not lit - LLM will handle this
+          return false;
         }
-        return;
       } else {
         if (gameState.flags.lanternLit) {
-          appendLog("<span class='prompt'>•</span> The lantern is already lit, casting a soft glow around you.", "system");
+          // Already lit - LLM will handle this
+          return true;
         } else {
           gameState.flags.lanternLit = true;
           gameState.puzzleProgress.litLantern = true;
-          appendLog(
-            "<span class='prompt'>+</span> You light the lantern. Shapes in the fog become a little clearer.",
-            "important"
-          );
+          // Success - LLM narration will describe this
+          return true;
         }
-        return;
       }
     }
 
-    appendLog("<span class='prompt'>•</span> Using that doesn't seem to do anything useful here.", "system");
+    // Item used but no specific action - LLM will handle this
+    return true;
   }
 
   function checkGameCompletion() {
@@ -392,16 +377,21 @@ const gameState = {
   }
   
   function normalizeItemName(word = "") {
-    const w = word.toLowerCase();
+    const w = word.toLowerCase().trim();
     if (!w) return null;
-    if (["key"].includes(w)) return "smallKey";
+    // English
+    if (["key", "smallkey", "small key"].includes(w)) return "smallKey";
     if (["lantern"].includes(w)) return "lantern";
+    // Turkish
+    if (["anahtar", "küçük anahtar", "küçükanahtar"].includes(w)) return "smallKey";
+    if (["fener", "lamba"].includes(w)) return "lantern";
     return null;
   }
   
   function readableItemName(id) {
-    if (id === "smallKey") return "small key";
-    if (id === "lantern") return "lantern";
+    const isTurkish = gameState.language === "tr";
+    if (id === "smallKey") return isTurkish ? "küçük anahtar" : "small key";
+    if (id === "lantern") return isTurkish ? "fener" : "lantern";
     return id;
   }
   
@@ -420,29 +410,32 @@ const gameState = {
   // ---- Engine command executor (no logging of raw input here) ----
   function handleEngineCommand(engineCommand) {
     const input = engineCommand.trim();
-    if (!input) return;
+    if (!input) return true;
   
     const lower = input.toLowerCase();
     const parts = lower.split(/\s+/);
     const verb = parts[0];
     const arg = parts.slice(1).join(" ");
   
+    let commandSucceeded = true;
     switch (verb) {
       case "look":
       case "l":
         describeCurrentRoom();
+        commandSucceeded = true;
         break;
       case "help":
         // Let LLM handle help requests naturally through conversation
         // Don't show static help text
+        commandSucceeded = true;
         break;
       case "go":
         if (!arg) {
-          appendLog("<span class='prompt'>!</span> You should specify a direction.", "important");
+          // Don't show error - LLM will handle this naturally
+          return false;
         } else {
-          move(arg);
+          return move(arg);
         }
-        break;
       case "north":
       case "south":
       case "east":
@@ -450,42 +443,42 @@ const gameState = {
       case "up":
       case "down":
       case "inside":
-        move(verb);
-        break;
+        return move(verb);
       case "take":
       case "get":
         if (!arg) {
-          appendLog("<span class='prompt'>!</span> What do you want to take?", "important");
+          commandSucceeded = false;
         } else {
-          take(arg);
+          commandSucceeded = take(arg) !== false;
         }
         break;
       case "inventory":
       case "inv":
       case "i":
         inventory();
+        commandSucceeded = true;
         break;
       case "examine":
       case "x":
         if (!arg) {
-          appendLog("<span class='prompt'>!</span> What do you want to examine?", "important");
+          commandSucceeded = false;
         } else {
-          examine(arg);
+          commandSucceeded = examine(arg) !== false;
         }
         break;
       case "use":
         if (!arg) {
-          appendLog("<span class='prompt'>!</span> What do you want to use?", "important");
+          commandSucceeded = false;
         } else {
-          useItem(arg);
+          commandSucceeded = useItem(arg) !== false;
         }
         break;
       default:
-        appendLog(
-          "<span class='prompt'>?</span> The engine does not understand that command. Type <code>help</code> for options.",
-          "important"
-        );
+        // Unknown command - assume it succeeded (LLM will handle)
+        commandSucceeded = true;
     }
+    
+    return commandSucceeded;
   }
   
   // ---- NEW: LLM-powered user input handler ----
@@ -544,8 +537,38 @@ const gameState = {
         appendLog(`<span class="prompt">&gt;</span> ${narration}`, "response");
       }
 
+      // Execute engine command and check if it succeeded
+      let commandSucceeded = true;
       if (engineCommand) {
-        handleEngineCommand(engineCommand);
+        commandSucceeded = handleEngineCommand(engineCommand) !== false;
+      }
+
+      // If command failed, ask LLM to explain naturally
+      if (!commandSucceeded && engineCommand) {
+        const failedMessages = {
+          en: `I tried to ${engineCommand} but it didn't work. Explain why naturally and suggest alternatives.`,
+          tr: `${engineCommand} komutunu denedim ama işe yaramadı. Nedenini doğal bir şekilde açıkla ve alternatifler öner.`,
+        };
+        const failedInput = failedMessages[gameState.language] || failedMessages.en;
+        
+        const failedResponse = await fetch("/interpret", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            input: failedInput,
+            state: getSerializableState(),
+            language: gameState.language,
+          }),
+        });
+        
+        if (failedResponse.ok) {
+          const failedData = await failedResponse.json();
+          if (failedData.narration) {
+            appendLog(`<span class="prompt">&gt;</span> ${failedData.narration}`, "response");
+          }
+        }
       }
     } catch (err) {
       console.error("Error calling /api/interpret:", err);

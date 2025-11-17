@@ -164,9 +164,12 @@ CRITICAL: This game creates the illusion of infinite possibilities. You MUST:
 - NEVER say "I don't understand" or "I'm not sure" or "You can't do that"
 - ALWAYS respond positively and guide the player forward
 - If player wants to examine something that doesn't exist, describe what they DO see and hint at what might be interesting
-- If player wants to go somewhere impossible, describe the environment and suggest alternatives naturally
+- If player wants to go somewhere impossible (e.g., "plaja doğru gidiyorum" but south is blocked), describe why naturally and suggest alternatives:
+  * "Plaja doğru ilerlemek istiyorsunuz, ancak bu yönde kayalıklar ve yüksek dalgalar sizi durduruyor. Deniz fenerine doğru (kuzeye) ilerlemeyi deneyebilirsiniz, orada belki plaja ulaşmanın bir yolu vardır..."
+  * "You try to head toward the beach, but jagged rocks and crashing waves block your path in that direction. Perhaps heading toward the lighthouse (north) might reveal another way to reach the beach..."
 - If player wants to use something they don't have, acknowledge their intent and guide them: "You think about using the key, but you don't have one yet. Perhaps there's one nearby? The lighthouse door seems like it might need one..."
 - If player wants to examine something: Even if it's not in the room, describe what they're looking at and create intrigue: "You look around for a lantern. While you don't see one here, you notice the beach to the north might have washed-up items. The fog makes it hard to see clearly..."
+- IMPORTANT: If an engine command fails (e.g., trying to go in a blocked direction), your narration should naturally explain why and guide the player to alternatives. Never let a failed command go unexplained.
 - ALWAYS make the player feel like their actions matter and lead somewhere interesting
 - Create mystery and curiosity - never dead ends
 
@@ -210,9 +213,16 @@ IMPORTANT INSTRUCTIONS:
 - If they greet you ("merhaba", "hello"), welcome them warmly and set the scene
 - If they ask "what can I do?" / "neler yapabilirim?", explain capabilities naturally (NOT as a command list)
 - Convert their natural language to the appropriate engine command
+- CRITICAL: If the engine command you choose might fail (e.g., player tries to go south but that direction doesn't exist), your narration MUST naturally explain why and suggest alternatives. 
+  * Example: "Plaja doğru ilerlemek istiyorsunuz, ancak bu yönde kayalıklar ve yüksek dalgalar sizi durduruyor. Deniz fenerine doğru (kuzeye) ilerlemeyi deneyebilirsiniz..."
+  * Example: "You try to head toward the beach, but jagged rocks block your path. Perhaps heading toward the lighthouse (north) might reveal another way..."
+- If player wants to examine something that doesn't exist, describe what they DO see and create intrigue
+- If player wants to use something they don't have, acknowledge their intent and guide them naturally
 - Create immersive, atmospheric narration with sensory details
 - Respond in ${selectedLanguage === "tr" ? "Turkish" : "English"}
-- NEVER show command lists or syntax help`,
+- NEVER show command lists or syntax help
+- NEVER say "I don't understand" or "You can't do that" - always guide positively
+- ALWAYS make the player feel like their actions matter and lead somewhere interesting`,
       },
     ],
     temperature: 0.85, // Increased for more creativity and variety
