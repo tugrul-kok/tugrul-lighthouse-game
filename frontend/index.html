@@ -63,12 +63,16 @@
       grid-template-rows: auto 1fr auto;
       gap: 12px;
       height: 460px;
+      min-height: 0;
+      overflow: hidden;
     }
     .game-main {
       grid-column: 1;
       display: grid;
       grid-template-rows: auto 1fr auto;
       gap: 12px;
+      min-height: 0;
+      overflow: hidden;
     }
     .game-dashboard {
       grid-column: 2;
@@ -105,8 +109,11 @@
       border: 1px solid #111827;
       padding: 12px;
       overflow-y: auto;
+      overflow-x: hidden;
       font-size: 14px;
       line-height: 1.5;
+      min-height: 0;
+      scroll-behavior: smooth;
     }
     .log-line {
       margin-bottom: 6px;
@@ -131,6 +138,7 @@
       display: flex;
       gap: 8px;
       align-items: center;
+      flex-shrink: 0;
     }
     .cmd-input {
       flex: 1;
@@ -309,12 +317,12 @@
     </div>
     <div class="game-body">
       <div class="game-main">
-        <div>
+        <div style="flex-shrink: 0;">
           <div class="location-name" id="location-name"></div>
           <div class="location-meta" id="location-meta"></div>
         </div>
-        <div class="log-window" id="log"></div>
-        <div>
+        <div class="log-window" id="log" style="flex: 1; min-height: 0;"></div>
+        <div style="flex-shrink: 0;">
           <div class="input-row">
             <input
               id="cmd-input"

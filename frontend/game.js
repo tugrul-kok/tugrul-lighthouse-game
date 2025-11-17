@@ -108,7 +108,10 @@ const gameState = {
     line.className = `log-line ${type}`;
     line.innerHTML = message;
     logEl.appendChild(line);
-    logEl.scrollTop = logEl.scrollHeight;
+    // Use requestAnimationFrame to ensure smooth scrolling
+    requestAnimationFrame(() => {
+      logEl.scrollTop = logEl.scrollHeight;
+    });
   }
   
   function updateDashboard() {
