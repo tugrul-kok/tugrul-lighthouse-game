@@ -557,12 +557,24 @@ const gameState = {
     appendLog("", "system");
   }
 
-  function selectLanguage(lang) {
+  // Make selectLanguage available globally
+  window.selectLanguage = function(lang) {
+    console.log("selectLanguage called with:", lang);
     gameState.language = lang;
+    
+    // Hide the language selector FIRST - try multiple methods
     const selector = document.getElementById("language-selector");
+    console.log("Language selector element:", selector);
     if (selector) {
+      // Try multiple methods to ensure it's hidden
       selector.style.display = "none";
+      selector.style.visibility = "hidden";
+      selector.style.opacity = "0";
       selector.classList.add("hidden");
+      selector.setAttribute("hidden", "true");
+      console.log("Language selector hidden with multiple methods");
+    } else {
+      console.error("Language selector element not found!");
     }
     
     // Update UI based on language
@@ -584,34 +596,67 @@ const gameState = {
     };
     
     const t = translations[lang] || translations.en;
-    inputEl.placeholder = t.placeholder;
-    helpHintEl.innerHTML = t.help;
-    document.querySelector("#dashboard-items").previousElementSibling.textContent = t.itemsTitle;
-    document.querySelector("#dashboard-directions").previousElementSibling.textContent = t.directionsTitle;
+    
+    // Safely update UI elements
+    const inputEl = document.getElementById("cmd-input");
+    const helpHintEl = document.getElementById("help-hint");
+    
+    if (inputEl) {
+      inputEl.placeholder = t.placeholder;
+    }
+    if (helpHintEl) {
+      helpHintEl.innerHTML = t.help;
+    }
+    
+    const dashboardItemsTitle = document.querySelector("#dashboard-items")?.previousElementSibling;
+    const dashboardDirectionsTitle = document.querySelector("#dashboard-directions")?.previousElementSibling;
+    
+    if (dashboardItemsTitle) {
+      dashboardItemsTitle.textContent = t.itemsTitle;
+    }
+    if (dashboardDirectionsTitle) {
+      dashboardDirectionsTitle.textContent = t.directionsTitle;
+    }
     
     // Start the game
     appendLog(`<span class='prompt'>•</span> ${t.welcome}`, "system");
     setLocation(gameState.currentRoomId);
     updateDashboard(); // Ensure dashboard is initialized
     showHelp();
-    inputEl.focus();
+    
+    if (inputEl) {
+      inputEl.focus();
+    }
   }
 
   function initGame() {
+    console.log("initGame called");
     // Show language selector
     const langEnBtn = document.getElementById("lang-en");
     const langTrBtn = document.getElementById("lang-tr");
     
+    console.log("Language buttons found:", { langEnBtn, langTrBtn });
+    
     if (langEnBtn) {
-      langEnBtn.addEventListener("click", () => {
+      langEnBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("English button clicked");
         selectLanguage("en");
       });
+    } else {
+      console.error("English button not found!");
     }
     
     if (langTrBtn) {
-      langTrBtn.addEventListener("click", () => {
+      langTrBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log("Turkish button clicked");
         selectLanguage("tr");
       });
+    } else {
+      console.error("Turkish button not found!");
     }
   }
   
