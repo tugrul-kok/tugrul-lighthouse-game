@@ -208,28 +208,8 @@ const gameState = {
   }
   
   function showHelp() {
-    const helpTexts = {
-      en: [
-        "<span class='prompt'>•</span> Some commands you can use:",
-        "- <code>look</code> : Look around in more detail.",
-        "- <code>go north/south/east/west</code> or <code>go up/down</code>: Move between locations.",
-        "- <code>take &lt;item&gt;</code> : Take an item (e.g. <code>take key</code>).",
-        "- <code>inventory</code> : Check what you're carrying.",
-        "- <code>examine &lt;item&gt;</code> : Inspect an item closely.",
-        "- <code>use &lt;item&gt;</code> : Use an item (if it makes sense here).",
-      ],
-      tr: [
-        "<span class='prompt'>•</span> Kullanabileceğiniz bazı komutlar:",
-        "- <code>bak</code> : Etrafı daha detaylı incele.",
-        "- <code>kuzeye/güneye/doğuya/batıya git</code> veya <code>yukarı/aşağı git</code>: Konumlar arasında hareket et.",
-        "- <code>&lt;eşya&gt; al</code> : Bir eşya al (örn. <code>anahtar al</code>).",
-        "- <code>envanter</code> : Taşıdığın eşyaları kontrol et.",
-        "- <code>&lt;eşya&gt; incele</code> : Bir eşyayı yakından incele.",
-        "- <code>&lt;eşya&gt; kullan</code> : Bir eşya kullan (eğer burada mantıklıysa).",
-      ],
-    };
-    const help = helpTexts[gameState.language] || helpTexts.en;
-    appendLog(help.join("<br/>"), "system");
+    // Don't show help - LLM will guide naturally
+    // This function is kept for compatibility but does nothing
   }
   
   function move(direction) {
@@ -623,18 +603,20 @@ const gameState = {
     // Update UI based on language
     const translations = {
       en: {
-        placeholder: "Type a command (e.g. look, go north, take key)...",
-        help: "Example commands: <code>look</code>, <code>go north</code>, <code>take key</code>, <code>inventory</code>, <code>help</code>.",
+        placeholder: "Type what you want to do...",
+        help: "You can explore, examine objects, move around, and interact with the environment naturally.",
         itemsTitle: "Items Here",
         directionsTitle: "Directions",
         welcome: "A foggy night at Tugrul Bay. The lighthouse has been dark for a long time. Perhaps tonight, someone will light it again...",
+        intro: "You can explore this mysterious place naturally. Move in different directions to discover the bay, examine objects you find, take items that catch your interest, and use them to solve puzzles. Your curiosity will guide you through this adventure.",
       },
       tr: {
-        placeholder: "Bir komut yazın (örn. bak, kuzeye git, anahtar al)...",
-        help: "Örnek komutlar: <code>bak</code>, <code>kuzeye git</code>, <code>anahtar al</code>, <code>envanter</code>, <code>yardım</code>.",
+        placeholder: "Ne yapmak istediğinizi yazın...",
+        help: "Etrafı keşfedebilir, nesneleri inceleyebilir, hareket edebilir ve çevreyle doğal bir şekilde etkileşime geçebilirsiniz.",
         itemsTitle: "Buradaki Eşyalar",
         directionsTitle: "Yönler",
         welcome: "Tugrul Koyu'nda sisli bir gece. Deniz feneri uzun zamandır karanlık. Belki bu gece, birisi onu tekrar yakacak...",
+        intro: "Bu gizemli yeri doğal bir şekilde keşfedebilirsiniz. Körfezi keşfetmek için farklı yönlere gidebilir, bulduğunuz nesneleri inceleyebilir, ilginizi çeken eşyaları alabilir ve bulmacaları çözmek için kullanabilirsiniz. Merakınız sizi bu macerada yönlendirecek.",
       },
     };
     
@@ -661,11 +643,11 @@ const gameState = {
       dashboardDirectionsTitle.textContent = t.directionsTitle;
     }
     
-    // Start the game - no help text, let LLM guide naturally
+    // Start the game - show welcome and natural intro
     appendLog(`<span class='prompt'>•</span> ${t.welcome}`, "system");
+    appendLog(`<span class='prompt'>•</span> ${t.intro}`, "system");
     setLocation(gameState.currentRoomId);
     updateDashboard(); // Ensure dashboard is initialized
-    // Don't show help - LLM will guide naturally through conversation
     
     if (inputEl) {
       inputEl.focus();
