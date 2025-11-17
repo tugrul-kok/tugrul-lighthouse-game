@@ -25,10 +25,15 @@ app.use(express.json());
  * }
  */
 async function callMistralChat({ input, stateSummary, language }) {
+  const selectedLanguage = language || "en";
+  const languageInstruction = selectedLanguage === "tr" 
+    ? "IMPORTANT: The player has selected Turkish (Türkçe) as their language. You MUST respond in Turkish for ALL narration and messages."
+    : "IMPORTANT: The player has selected English as their language. You MUST respond in English for ALL narration and messages.";
+
   const systemPrompt = `
 You are the game master for a puzzle-solving text adventure game called "The Lighthouse at Tugrul Bay".
 
-IMPORTANT: The player can communicate in English OR Turkish. Detect their language and respond in the SAME language they use.
+${languageInstruction}
 
 The underlying engine understands ONLY a small set of text commands:
 - look
@@ -52,18 +57,18 @@ Puzzle Steps (track in game state):
 When ALL puzzles are solved, reveal the password: "TUGRUL_AI"
 
 Your job:
-1. Detect the player's language (English or Turkish) from their input.
-2. Read the player's free-form input (in any language).
-3. Use the game state summary to track puzzle progress.
-4. Decide what engine command should be executed next.
-5. Write atmospheric narration in the SAME language as the player's input.
+1. Read the player's free-form input (they may type in their selected language or use commands).
+2. Use the game state summary to track puzzle progress.
+3. Decide what engine command should be executed next.
+4. Write atmospheric narration in the SELECTED language (${selectedLanguage === "tr" ? "Turkish" : "English"}).
+5. Include observations about items and directions naturally in your narration - don't list them separately.
 6. Track puzzle completion and reveal the password when all puzzles are solved.
 
 You MUST respond with valid JSON only, no extra text, in this shape:
 {
   "command": "<ENGINE_COMMAND>",
-  "narration": "<SHORT_NARRATION_IN_PLAYER_LANGUAGE>",
-  "language": "en" or "tr",
+  "narration": "<SHORT_NARRATION_IN_SELECTED_LANGUAGE>",
+  "language": "${selectedLanguage}",
   "puzzleProgress": {
     "foundLantern": true/false,
     "litLantern": true/false,
@@ -73,13 +78,14 @@ You MUST respond with valid JSON only, no extra text, in this shape:
     "litBeacon": true/false
   },
   "gameComplete": true/false,
-  "password": "TUGRUL2024" (only if gameComplete is true)
+  "password": "TUGRUL_AI" (only if gameComplete is true)
 }
 
 Rules:
 - "command" MUST be a single engine command string as described above.
-- "narration" MUST be in the same language as the player's input (English or Turkish).
-- "language" should be "en" for English or "tr" for Turkish.
+- "narration" MUST be in ${selectedLanguage === "tr" ? "Turkish" : "English"} (the selected language).
+- "narration" should naturally include observations about items and directions in the environment - integrate them into the story, don't list them separately.
+- "language" should always be "${selectedLanguage}".
 - Update puzzleProgress based on game state and actions.
 - Set gameComplete to true only when ALL 6 puzzles are solved.
 - Only include "password" field when gameComplete is true.
@@ -94,7 +100,7 @@ Rules:
       { role: "system", content: systemPrompt },
       {
         role: "user",
-        content: `Player input: "${input}".\n\nGame state:\n${stateSummary}\n\nDetect the player's language and respond accordingly.`,
+        content: `Player input: "${input}".\n\nGame state:\n${stateSummary}\n\nRespond in ${selectedLanguage === "tr" ? "Turkish" : "English"} (the selected language).`,
       },
     ],
     temperature: 0.7,
@@ -210,7 +216,7 @@ Rules:
  */
 async function interpretHandler(req, res) {
   try {
-    const { input, state } = req.body || {};
+    const { input, state, language } = req.body || {};
     if (!input || typeof input !== "string") {
       return res.status(400).json({
         error: "Missing 'input' string in body.",
@@ -222,6 +228,9 @@ async function interpretHandler(req, res) {
         error: "MISTRAL_API_KEY not configured on server.",
       });
     }
+
+    // Use language from request body, fallback to state, then default to "en"
+    const selectedLanguage = language || state?.language || "en";
 
     const room = state?.currentRoomId || "unknown";
     const inventory = Array.isArray(state?.inventory)
@@ -245,7 +254,7 @@ puzzleProgress: ${JSON.stringify(puzzleProgress)}
 gameComplete: ${state?.gameComplete || false}
 `.trim();
 
-    const result = await callMistralChat({ input, stateSummary, language: state?.language || "en" });
+    const result = await callMistralChat({ input, stateSummary, language: selectedLanguage });
     res.json(result);
   } catch (err) {
     console.error("Error in interpret handler:", err);

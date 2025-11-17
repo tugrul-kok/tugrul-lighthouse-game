@@ -98,6 +98,10 @@ const gameState = {
   const locationMetaEl = document.getElementById("location-meta");
   const inputEl = document.getElementById("cmd-input");
   const sendBtn = document.getElementById("cmd-send");
+  const dashboardItemsEl = document.getElementById("dashboard-items");
+  const dashboardDirectionsEl = document.getElementById("dashboard-directions");
+  const languageSelectorEl = document.getElementById("language-selector");
+  const helpHintEl = document.getElementById("help-hint");
   
   function appendLog(message, type = "system") {
     const line = document.createElement("div");
@@ -107,6 +111,34 @@ const gameState = {
     logEl.scrollTop = logEl.scrollHeight;
   }
   
+  function updateDashboard() {
+    const room = rooms[gameState.currentRoomId];
+    if (!room) return;
+
+    // Update items dashboard
+    const itemNames = room.items || [];
+    if (itemNames.length > 0) {
+      const readable = itemNames
+        .map((id) => (id === "lantern" ? "a lantern" : id === "smallKey" ? "a small key" : id))
+        .map(item => `<div class="dashboard-item">• ${item}</div>`)
+        .join("");
+      dashboardItemsEl.innerHTML = readable;
+    } else {
+      dashboardItemsEl.innerHTML = '<span style="color: #6b7280;">-</span>';
+    }
+
+    // Update directions dashboard
+    const exits = Object.keys(room.exits || {});
+    if (exits.length > 0) {
+      const directions = exits
+        .map(dir => `<div class="dashboard-direction">• ${dir}</div>`)
+        .join("");
+      dashboardDirectionsEl.innerHTML = directions;
+    } else {
+      dashboardDirectionsEl.innerHTML = '<span style="color: #6b7280;">-</span>';
+    }
+  }
+
   function setLocation(roomId) {
     const room = rooms[roomId];
     if (!room) return;
@@ -115,60 +147,47 @@ const gameState = {
     locationNameEl.textContent = room.name;
     locationMetaEl.textContent = room.short;
   
+    // Update dashboard instead of logging items/directions
+    updateDashboard();
+  
     const firstTimeHereKey = `visited_${roomId}`;
     const firstTime = !gameState.flags[firstTimeHereKey];
   
     if (firstTime) {
       gameState.flags[firstTimeHereKey] = true;
-      appendLog(`<span class="prompt">&gt;</span> ${room.description}`, "response");
-    } else {
-      appendLog(`<span class="prompt">&gt;</span> ${room.short}`, "response");
-    }
-  
-    const itemNames = room.items || [];
-    if (itemNames.length > 0) {
-      const readable = itemNames
-        .map((id) => (id === "lantern" ? "a lantern" : id === "smallKey" ? "a small key" : id))
-        .join(", ");
-      appendLog(`<span class="prompt">•</span> You notice: <strong>${readable}</strong>.`, "system");
-    }
-  
-    const exits = Object.keys(room.exits || {});
-    if (exits.length > 0) {
-      appendLog(
-        `<span class="prompt">•</span> Possible directions: <strong>${exits.join(", ")}</strong>.`,
-        "system"
-      );
+      // Don't log description here - let Mistral handle it in narration
     }
   }
   
   function describeCurrentRoom() {
-    const room = rooms[gameState.currentRoomId];
-    if (!room) return;
-    appendLog(`<span class="prompt">&gt;</span> ${room.description}`, "response");
-  
-    const itemNames = room.items || [];
-    if (itemNames.length > 0) {
-      const readable = itemNames
-        .map((id) => (id === "lantern" ? "a lantern" : id === "smallKey" ? "a small key" : id))
-        .join(", ");
-      appendLog(`<span class="prompt">•</span> You see: <strong>${readable}</strong>.`, "system");
-    }
+    // Don't log description here - let Mistral handle it in narration
+    // Just update dashboard
+    updateDashboard();
   }
   
   function showHelp() {
-    appendLog(
-      [
+    const helpTexts = {
+      en: [
         "<span class='prompt'>•</span> Some commands you can use:",
         "- <code>look</code> : Look around in more detail.",
         "- <code>go north/south/east/west</code> or <code>go up/down</code>: Move between locations.",
         "- <code>take &lt;item&gt;</code> : Take an item (e.g. <code>take key</code>).",
         "- <code>inventory</code> : Check what you're carrying.",
         "- <code>examine &lt;item&gt;</code> : Inspect an item closely.",
-        "- <code>use key</code> : Use an item (if it makes sense here).",
-      ].join("<br/>"),
-      "system"
-    );
+        "- <code>use &lt;item&gt;</code> : Use an item (if it makes sense here).",
+      ],
+      tr: [
+        "<span class='prompt'>•</span> Kullanabileceğiniz bazı komutlar:",
+        "- <code>bak</code> : Etrafı daha detaylı incele.",
+        "- <code>kuzeye/güneye/doğuya/batıya git</code> veya <code>yukarı/aşağı git</code>: Konumlar arasında hareket et.",
+        "- <code>&lt;eşya&gt; al</code> : Bir eşya al (örn. <code>anahtar al</code>).",
+        "- <code>envanter</code> : Taşıdığın eşyaları kontrol et.",
+        "- <code>&lt;eşya&gt; incele</code> : Bir eşyayı yakından incele.",
+        "- <code>&lt;eşya&gt; kullan</code> : Bir eşya kullan (eğer burada mantıklıysa).",
+      ],
+    };
+    const help = helpTexts[gameState.language] || helpTexts.en;
+    appendLog(help.join("<br/>"), "system");
   }
   
   function move(direction) {
@@ -234,10 +253,8 @@ const gameState = {
       gameState.puzzleProgress.foundKey = true;
     }
 
-    appendLog(
-      `<span class='prompt'>+</span> You take the <strong>${readableItemName(canonicalItem)}</strong>.`,
-      "response"
-    );
+    // Update dashboard after taking item
+    updateDashboard();
   }
   
   function inventory() {
@@ -465,6 +482,7 @@ const gameState = {
     body: JSON.stringify({
       input: trimmed,
       state: getSerializableState(),
+      language: gameState.language, // Send selected language to backend
     }),
   });
   
@@ -482,10 +500,8 @@ const gameState = {
       const engineCommand = (data.command || "").trim();
       const narration = (data.narration || "").trim();
 
-      // Update language if detected
-      if (data.language) {
-        gameState.language = data.language;
-      }
+      // Don't update language - use the selected language consistently
+      // The backend should respect the selected language
 
       // Update puzzle progress
       if (data.puzzleProgress) {
@@ -541,17 +557,46 @@ const gameState = {
     appendLog("", "system");
   }
 
-  function initGame() {
-    appendLog(
-      "<span class='prompt'>•</span> A foggy night at Tugrul Bay. The lighthouse has been dark for a long time. Perhaps tonight, someone will light it again...",
-      "system"
-    );
-    appendLog(
-      "<span class='prompt'>•</span> <em>You can play in English or Turkish (Türkçe). The game will respond in your language.</em>",
-      "system"
-    );
+  function selectLanguage(lang) {
+    gameState.language = lang;
+    languageSelectorEl.classList.add("hidden");
+    
+    // Update UI based on language
+    const translations = {
+      en: {
+        placeholder: "Type a command (e.g. look, go north, take key)...",
+        help: "Example commands: <code>look</code>, <code>go north</code>, <code>take key</code>, <code>inventory</code>, <code>help</code>.",
+        itemsTitle: "Items Here",
+        directionsTitle: "Directions",
+        welcome: "A foggy night at Tugrul Bay. The lighthouse has been dark for a long time. Perhaps tonight, someone will light it again...",
+      },
+      tr: {
+        placeholder: "Bir komut yazın (örn. bak, kuzeye git, anahtar al)...",
+        help: "Örnek komutlar: <code>bak</code>, <code>kuzeye git</code>, <code>anahtar al</code>, <code>envanter</code>, <code>yardım</code>.",
+        itemsTitle: "Buradaki Eşyalar",
+        directionsTitle: "Yönler",
+        welcome: "Tugrul Koyu'nda sisli bir gece. Deniz feneri uzun zamandır karanlık. Belki bu gece, birisi onu tekrar yakacak...",
+      },
+    };
+    
+    const t = translations[lang] || translations.en;
+    inputEl.placeholder = t.placeholder;
+    helpHintEl.innerHTML = t.help;
+    document.querySelector("#dashboard-items").previousElementSibling.textContent = t.itemsTitle;
+    document.querySelector("#dashboard-directions").previousElementSibling.textContent = t.directionsTitle;
+    
+    // Start the game
+    appendLog(`<span class='prompt'>•</span> ${t.welcome}`, "system");
     setLocation(gameState.currentRoomId);
+    updateDashboard(); // Ensure dashboard is initialized
     showHelp();
+    inputEl.focus();
+  }
+
+  function initGame() {
+    // Show language selector
+    document.getElementById("lang-en").addEventListener("click", () => selectLanguage("en"));
+    document.getElementById("lang-tr").addEventListener("click", () => selectLanguage("tr"));
   }
   
   // Wire UI
@@ -573,5 +618,4 @@ const gameState = {
   
   window.addEventListener("load", () => {
     initGame();
-    inputEl.focus();
   });
