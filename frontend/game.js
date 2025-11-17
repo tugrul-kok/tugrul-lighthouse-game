@@ -118,11 +118,50 @@ const gameState = {
     const room = rooms[gameState.currentRoomId];
     if (!room) return;
 
+    const isTurkish = gameState.language === "tr";
+
+    // Direction translations
+    const directionTranslations = {
+      en: {
+        north: "north",
+        south: "south",
+        east: "east",
+        west: "west",
+        up: "up",
+        down: "down",
+        inside: "inside",
+      },
+      tr: {
+        north: "kuzey",
+        south: "güney",
+        east: "doğu",
+        west: "batı",
+        up: "yukarı",
+        down: "aşağı",
+        inside: "içeri",
+      },
+    };
+
+    // Item translations
+    const itemTranslations = {
+      en: {
+        lantern: "a lantern",
+        smallKey: "a small key",
+      },
+      tr: {
+        lantern: "bir fener",
+        smallKey: "küçük bir anahtar",
+      },
+    };
+
+    const translations = isTurkish ? directionTranslations.tr : directionTranslations.en;
+    const itemTrans = isTurkish ? itemTranslations.tr : itemTranslations.en;
+
     // Update items dashboard
     const itemNames = room.items || [];
     if (itemNames.length > 0) {
       const readable = itemNames
-        .map((id) => (id === "lantern" ? "a lantern" : id === "smallKey" ? "a small key" : id))
+        .map((id) => itemTrans[id] || id)
         .map(item => `<div class="dashboard-item">• ${item}</div>`)
         .join("");
       dashboardItemsEl.innerHTML = readable;
@@ -134,7 +173,7 @@ const gameState = {
     const exits = Object.keys(room.exits || {});
     if (exits.length > 0) {
       const directions = exits
-        .map(dir => `<div class="dashboard-direction">• ${dir}</div>`)
+        .map(dir => `<div class="dashboard-direction">• ${translations[dir] || dir}</div>`)
         .join("");
       dashboardDirectionsEl.innerHTML = directions;
     } else {
