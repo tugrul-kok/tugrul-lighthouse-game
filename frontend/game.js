@@ -545,11 +545,22 @@ const gameState = {
 
       // If command failed, ask LLM to explain naturally
       if (!commandSucceeded && engineCommand) {
-        const failedMessages = {
-          en: `I tried to ${engineCommand} but it didn't work. Explain why naturally and suggest alternatives.`,
-          tr: `${engineCommand} komutunu denedim ama işe yaramadı. Nedenini doğal bir şekilde açıkla ve alternatifler öner.`,
-        };
-        const failedInput = failedMessages[gameState.language] || failedMessages.en;
+        // Create context-aware failure messages
+        let failedInput = "";
+        if (engineCommand.startsWith("go inside") || engineCommand.includes("inside")) {
+          failedInput = gameState.language === "tr" 
+            ? "Deniz fenerinin içine girmeye çalışıyorum ama kapı kilitli. Nedenini doğal bir şekilde açıkla ve ne yapabileceğimi söyle."
+            : "I'm trying to enter the lighthouse but the door is locked. Explain why naturally and tell me what I can do.";
+        } else if (engineCommand.startsWith("go")) {
+          const direction = engineCommand.split(" ")[1] || "";
+          failedInput = gameState.language === "tr"
+            ? `${direction} yönüne gitmeye çalışıyorum ama gidemiyorum. Nedenini doğal bir şekilde açıkla ve alternatif yönler öner.`
+            : `I'm trying to go ${direction} but I can't. Explain why naturally and suggest alternative directions.`;
+        } else {
+          failedInput = gameState.language === "tr"
+            ? `${engineCommand} yapmaya çalışıyorum ama işe yaramadı. Nedenini doğal bir şekilde açıkla ve ne yapabileceğimi söyle.`
+            : `I'm trying to ${engineCommand} but it didn't work. Explain why naturally and tell me what I can do.`;
+        }
         
         const failedResponse = await fetch("/interpret", {
           method: "POST",
