@@ -414,7 +414,8 @@ const gameState = {
         describeCurrentRoom();
         break;
       case "help":
-        showHelp();
+        // Let LLM handle help requests naturally through conversation
+        // Don't show static help text
         break;
       case "go":
         if (!arg) {
@@ -621,11 +622,11 @@ const gameState = {
       dashboardDirectionsTitle.textContent = t.directionsTitle;
     }
     
-    // Start the game
+    // Start the game - no help text, let LLM guide naturally
     appendLog(`<span class='prompt'>•</span> ${t.welcome}`, "system");
     setLocation(gameState.currentRoomId);
     updateDashboard(); // Ensure dashboard is initialized
-    showHelp();
+    // Don't show help - LLM will guide naturally through conversation
     
     if (inputEl) {
       inputEl.focus();
