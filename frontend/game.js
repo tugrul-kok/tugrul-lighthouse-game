@@ -559,7 +559,11 @@ const gameState = {
 
   function selectLanguage(lang) {
     gameState.language = lang;
-    languageSelectorEl.classList.add("hidden");
+    const selector = document.getElementById("language-selector");
+    if (selector) {
+      selector.style.display = "none";
+      selector.classList.add("hidden");
+    }
     
     // Update UI based on language
     const translations = {
@@ -595,8 +599,20 @@ const gameState = {
 
   function initGame() {
     // Show language selector
-    document.getElementById("lang-en").addEventListener("click", () => selectLanguage("en"));
-    document.getElementById("lang-tr").addEventListener("click", () => selectLanguage("tr"));
+    const langEnBtn = document.getElementById("lang-en");
+    const langTrBtn = document.getElementById("lang-tr");
+    
+    if (langEnBtn) {
+      langEnBtn.addEventListener("click", () => {
+        selectLanguage("en");
+      });
+    }
+    
+    if (langTrBtn) {
+      langTrBtn.addEventListener("click", () => {
+        selectLanguage("tr");
+      });
+    }
   }
   
   // Wire UI
